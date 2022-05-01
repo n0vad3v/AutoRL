@@ -1,10 +1,12 @@
 # AutoRL
 
-This is a POC of automatically block traffic on Cloudflare's side based on Nginx Log Parsing.
+This is a POC of automatically block traffic on Cloudflare's side based on Nginx Log parsing.
 
 It will evaluate Nginx access.log and find potential CC pattern, and block them on Cloudflare's side and send a message to Telegram Group.
 
 ## Topology
+
+With Cloudflare Argo Tunnel, we can set security group to allow inbound traffic for SSH only, this can guarantee the Host's IP will not be exposed to the Internet (ref: [使用 Cloudflare Argo Tunnel(cloudflared) 来加速和保护你的网站](https://nova.moe/accelerate-and-secure-with-cloudflared/)), however, attackers can still CC your website by sending enormous requests cocurrently, AutoRL is here trying to mitigate this problem.
 
 ![](./AutoRL.png)
 
