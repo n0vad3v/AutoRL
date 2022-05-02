@@ -10,18 +10,7 @@ With Cloudflare Argo Tunnel, we can set security group to allow inbound traffic 
 
 ![](./AutoRL.png)
 
-## Demo
-
-On Telegram side:
-
-![](./demo.png)
-
-On Cloudflare side:
-
-![](./demo-cf.png)
-
-
-## Prerequisite
+## Prerequisites
 
 Since this is only a PoC, the following condition must be met to use AutoRL.
 
@@ -59,6 +48,15 @@ Since this is only a PoC, the following condition must be met to use AutoRL.
     * * * * * for i in {1..6}; do /usr/bin/python3 /path/to/autorl.py & sleep 10; done
     ```
 
+## Demo
+
+On Telegram side:
+
+![](./demo.png)
+
+On Cloudflare side:
+
+![](./demo-cf.png)
 ## Notes
 
 * Blocked IP address will never gets unblocked.

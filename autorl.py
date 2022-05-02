@@ -49,7 +49,7 @@ def add_ip_to_block_rule(ip_addr):
             "target": "ip",
             "value": ip_addr
         },
-        "notes": "Auto-blocked on " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        "notes": "Auto blocked by AutoRL on " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     }
     r = requests.post(prefix + path, headers=header, data=json.dumps(data))
     return r.json()
@@ -79,7 +79,7 @@ def parse_nginx_log(log_path):
         ip_addr = line.rsplit(' ', 1)[1].strip().replace('"', '')
         log_datetime = datetime.datetime.strptime(line.split(' ')[1], datetime_format)
         if (datetime.datetime.now() - log_datetime).total_seconds() / 60 < INTERVAL_MIN:
-            if  "-" in ip_addr or ip_addr in IP_WHITE_LIST:
+            if "-" in ip_addr or ip_addr in IP_WHITE_LIST:
                 continue
             else:
                 if ip_addr not in ip_addr_counter:
@@ -89,7 +89,7 @@ def parse_nginx_log(log_path):
     print(ip_addr_counter)
     return ip_addr_counter
 
-def get_bad_ip(ip_addr_counter):
+def get_bad_ips(ip_addr_counter):
     bad_ip = []
     bad_ip_visit_count = []
     for ip_addr, count in ip_addr_counter.items():
@@ -109,8 +109,8 @@ def send_message_to_telegram(chat_id, text):
 
 if __name__ == '__main__':
     ip_addr_counter = parse_nginx_log(ACCESS_LOG_PATH)
-    bad_ip, bad_ip_visit_count = get_bad_ip(ip_addr_counter)
+    bad_ip, bad_ip_visit_count = get_bad_ips(ip_addr_counter)
     for i in range(len(bad_ip)):
-        msg = "On Host: " + socket.gethostname() + ", with IP " + bad_ip[i] + " has been accessed " + str(bad_ip_visit_count[i]) + " times in the last " + str(INTERVAL_MIN) + " minutes, now blocked."
+        msg = "On Host: " + socket.gethostname() + ", with IP " + bad_ip[i] + " has accessed " + str(bad_ip_visit_count[i]) + " times in the last " + str(INTERVAL_MIN) + " minutes, now blocked."
         add_ip_to_block_rule(bad_ip[i])
         send_message_to_telegram(TG_CHAT_ID, msg)
