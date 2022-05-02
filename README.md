@@ -1,6 +1,6 @@
 # AutoRL
 
-This is a POC of automatically block traffic on Cloudflare's side based on Nginx Log parsing.
+This is a PoC of automatically block traffic on Cloudflare's side based on Nginx Log parsing.
 
 It will evaluate Nginx access.log and find potential CC pattern, and block them on Cloudflare's side and send a message to Telegram Group.
 
@@ -23,17 +23,23 @@ On Cloudflare side:
 
 ## Prerequisite
 
-Since this is only a POC, the following condition must be met to use AutoRL.
+Since this is only a PoC, the following condition must be met to use AutoRL.
 
+* Python 3 installed on Host
 * Nginx used for Reverse proxy and all the logs are logged into one `access.log` file.
 * Nginx has the following log format (in `/etc/nginx/nginx.conf`)
 
-```
-log_format  main  '$remote_addr $time_iso8601 "$request" '
-                    '$status $body_bytes_sent "$http_referer" '
-                    '"$http_user_agent" "$http_x_forwarded_for"';
-```
-* Python 3 installed on Host
+    ```
+    log_format  main  '$remote_addr $time_iso8601 "$request" '
+                        '$status $body_bytes_sent "$http_referer" '
+                        '"$http_user_agent" "$http_x_forwarded_for"';
+    ```
+    On this condition, the raw log should look like this:
+    ```
+    172.70.211.101 2022-05-02T10:44:16+08:00 "GET /grafana/api/live/ws HTTP/1.1" 400 12 "-" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.5028.0 Safari/537.36" "145.xx.xx.xxx"
+    ```
+    Where, `172.70.211.101` is Cloudflare's IP, `2022-05-02T10:44:16+08:00` stands for request datetime and `"145.xx.xx.xxx"` is the real visitor IP.
+
 
 ## Usage
 
