@@ -36,7 +36,7 @@ def get_existing_rules():
         rules += r.json()['result']
     return rules
 
-def add_ip_to_block_rule(ip_addr):
+def add_ip_to_block_rule(ip_addr, domain):
     path = "user/firewall/access_rules/rules"
     header = {
         "X-Auth-Email": CF_EMAIL,
@@ -49,7 +49,7 @@ def add_ip_to_block_rule(ip_addr):
             "target": "ip",
             "value": ip_addr
         },
-        "notes": "Auto blocked by AutoRL on " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        "notes": "Auto blocked by AutoRL on " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " for " + domain
     }
     r = requests.post(prefix + path, headers=header, data=json.dumps(data))
     return r.json()
@@ -75,9 +75,11 @@ def parse_nginx_log(log_path):
     datetime_format = "%Y-%m-%dT%H:%M:%S+08:00"
 
     ip_addr_counter = {}
+    ip_domain_counter = {}
     for line in lines:
         ip_addr = line.rsplit(' ', 1)[1].strip().replace('"', '')
         log_datetime = datetime.datetime.strptime(line.split(' ')[1], datetime_format)
+        requested_domain = line.split(' ')[5].strip()
         if (datetime.datetime.now() - log_datetime).total_seconds() / 60 < INTERVAL_MIN:
             if "-" in ip_addr or ip_addr in IP_WHITE_LIST:
                 continue
@@ -86,17 +88,28 @@ def parse_nginx_log(log_path):
                     ip_addr_counter[ip_addr] = 1
                 else:
                     ip_addr_counter[ip_addr] += 1
-    print(ip_addr_counter)
-    return ip_addr_counter
+        
+        if ip_addr not in ip_domain_counter:
+            ip_domain_counter[ip_addr] = {}
+        if requested_domain not in ip_domain_counter[ip_addr]:
+            ip_domain_counter[ip_addr][requested_domain] = 1
+        else:
+            ip_domain_counter[ip_addr][requested_domain] += 1
+    return ip_addr_counter, ip_domain_counter
 
-def get_bad_ips(ip_addr_counter):
-    bad_ip = []
+def get_bad_ips(ip_addr_counter,ip_domain_counter):
+    bad_ip_list = []
     bad_ip_visit_count = []
+    bad_ip_visited_top_domain = []
     for ip_addr, count in ip_addr_counter.items():
         if count > RATE_PER_MINUTE:
-            bad_ip.append(ip_addr)
+            bad_ip_list.append(ip_addr)
             bad_ip_visit_count.append(count)
-    return bad_ip, bad_ip_visit_count
+
+            bad_ip_domain_list = ip_domain_counter[ip_addr]
+            bad_ip_visited_top_domain.append(max(bad_ip_domain_list, key=bad_ip_domain_list.get))
+
+    return bad_ip_list, bad_ip_visit_count, bad_ip_visited_top_domain
 
 def send_message_to_telegram(chat_id, text):
     url = "https://api.telegram.org/bot" + TG_BOT_TOKEN + "/sendMessage"
@@ -108,9 +121,9 @@ def send_message_to_telegram(chat_id, text):
     return r.json()
 
 if __name__ == '__main__':
-    ip_addr_counter = parse_nginx_log(ACCESS_LOG_PATH)
-    bad_ip, bad_ip_visit_count = get_bad_ips(ip_addr_counter)
-    for i in range(len(bad_ip)):
-        msg = "On Host: " + socket.gethostname() + ", with IP " + bad_ip[i] + " has accessed " + str(bad_ip_visit_count[i]) + " times in the last " + str(INTERVAL_MIN) + " minutes, now blocked."
-        add_ip_to_block_rule(bad_ip[i])
+    ip_addr_counter, ip_domain_counter = parse_nginx_log(ACCESS_LOG_PATH)
+    bad_ip_list, bad_ip_visit_count, bad_ip_visited_top_domain = get_bad_ips(ip_addr_counter,ip_domain_counter)
+    for i in range(len(bad_ip_list)):
+        msg = "On Host: " + socket.gethostname() + ", with IP " + bad_ip_list[i] + " has accessed domain " + str(bad_ip_visited_top_domain[i]) + " for " + str(bad_ip_visit_count[i]) + " times in the last " + str(INTERVAL_MIN) + " minutes, now blocked."
+        add_ip_to_block_rule(bad_ip_list[i], bad_ip_visited_top_domain[i])
         send_message_to_telegram(TG_CHAT_ID, msg)
