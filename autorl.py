@@ -89,12 +89,12 @@ def parse_nginx_log(log_path):
                 else:
                     ip_addr_counter[ip_addr] += 1
         
-        if ip_addr not in ip_domain_counter:
-            ip_domain_counter[ip_addr] = {}
-        if requested_domain not in ip_domain_counter[ip_addr]:
-            ip_domain_counter[ip_addr][requested_domain] = 1
-        else:
-            ip_domain_counter[ip_addr][requested_domain] += 1
+            if ip_addr not in ip_domain_counter:
+                ip_domain_counter[ip_addr] = {}
+            if requested_domain not in ip_domain_counter[ip_addr]:
+                ip_domain_counter[ip_addr][requested_domain] = 1
+            else:
+                ip_domain_counter[ip_addr][requested_domain] += 1
     return ip_addr_counter, ip_domain_counter
 
 def get_bad_ips(ip_addr_counter,ip_domain_counter):
